@@ -42,9 +42,9 @@ export interface UpdateWorkflowPayload {
 }
 
 export interface CreateStagePayload {
-  sortOrder: number;
+  sortOrder?: number;
   titleTemplate?: string;
-  assigneeId?: string;
+  assigneeSlug?: string;
   initialStatus?: string;
   maxRuntime?: number;
   maxRetries?: number;
@@ -56,7 +56,7 @@ export interface CreateStagePayload {
 export interface UpdateStagePayload {
   sortOrder?: number;
   titleTemplate?: string;
-  assigneeId?: string;
+  assigneeSlug?: string;
   initialStatus?: string;
   maxRuntime?: number;
   maxRetries?: number;
