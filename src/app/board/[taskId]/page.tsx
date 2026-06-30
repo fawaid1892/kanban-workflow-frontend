@@ -4,7 +4,7 @@ import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, ExternalLink } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
@@ -29,14 +29,14 @@ function formatDuration(start: number, end: number | null): string {
   return `${Math.floor(duration / 3600)}h ${Math.floor((duration % 3600) / 60)}m`;
 }
 
-const STATUS_COLORS: Record<string, string> = {
+const STATUS_COLORS: Record<string, 'default' | 'success' | 'warning' | 'error' | 'info'> = {
   todo: 'default',
   triage: 'warning',
   running: 'info',
   blocked: 'error',
-  done: 'default',
+  done: 'success',
   failed: 'error',
-} as const;
+};
 
 export default function TaskDetailPage() {
   const params = useParams();
@@ -109,7 +109,7 @@ export default function TaskDetailPage() {
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <Badge variant={STATUS_COLORS[task.status] as any ?? 'default'}>
+                <Badge variant={STATUS_COLORS[task.status] ?? 'default'}>
                   {task.status}
                 </Badge>
                 <span className="font-mono text-xs text-gray-400">
