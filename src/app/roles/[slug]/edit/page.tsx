@@ -77,8 +77,7 @@ export default function EditRolePage() {
     type: 'success' | 'error';
   } | null>(null);
 
-  // Track build state for polling
-  const [buildTriggered, setBuildTriggered] = useState(false);
+  // Track build state
   const [buildStatus, setBuildStatus] = useState<
     'idle' | 'building' | 'success' | 'failed'
   >('idle');
@@ -136,7 +135,6 @@ export default function EditRolePage() {
   const buildMutation = useMutation({
     mutationFn: () => triggerSandboxBuild(slug),
     onSuccess: () => {
-      setBuildTriggered(true);
       setBuildStatus('building');
       setToast({ message: 'Build started', type: 'success' });
     },
@@ -494,8 +492,6 @@ export default function EditRolePage() {
 
                   <SandboxLogs
                     slug={slug}
-                    autoPoll={buildTriggered && buildStatus === 'building'}
-                    pollingInterval={2000}
                     key={slug}
                   />
                 </div>
