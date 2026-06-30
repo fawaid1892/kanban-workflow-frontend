@@ -9,9 +9,7 @@ export interface BoardFilters {
   offset?: number;
 }
 
-export async function fetchBoardTasks(
-  filters?: BoardFilters,
-): Promise<BoardTask[]> {
+export async function fetchBoardTasks(workflowId: string, filters?: BoardFilters): Promise<BoardTask[]> {
   const params = new URLSearchParams();
   if (filters?.status) params.set('status', filters.status);
   if (filters?.assignee) params.set('assignee', filters.assignee);
@@ -20,16 +18,16 @@ export async function fetchBoardTasks(
   if (filters?.offset) params.set('offset', String(filters.offset));
 
   const qs = params.toString();
-  const response = await api.get<BoardTask[]>(`/board/tasks${qs ? `?${qs}` : ''}`);
+  const response = await api.get<BoardTask[]>(`/workflows/${workflowId}/board/tasks${qs ? `?${qs}` : ''}`);
   return response.data;
 }
 
-export async function fetchTaskDetail(taskId: string): Promise<TaskDetail> {
-  const response = await api.get<TaskDetail>(`/board/tasks/${taskId}`);
+export async function fetchTaskDetail(workflowId: string, taskId: string): Promise<TaskDetail> {
+  const response = await api.get<TaskDetail>(`/workflows/${workflowId}/board/tasks/${taskId}`);
   return response.data;
 }
 
-export async function fetchBoardStats(): Promise<BoardStats> {
-  const response = await api.get<BoardStats>('/board/stats');
+export async function fetchBoardStats(workflowId: string): Promise<BoardStats> {
+  const response = await api.get<BoardStats>(`/workflows/${workflowId}/board/stats`);
   return response.data;
 }
