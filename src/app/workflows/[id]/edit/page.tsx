@@ -23,6 +23,7 @@ import { ArrowLeft, Save, Plus, Workflow } from 'lucide-react';
 import { Toast } from '@/components/ui/toast';
 import StageNode, { type StageNodeData } from '@/components/workflow/StageNode';
 import { NodeEditor } from '@/components/workflow/NodeEditor';
+import { RolePicker, type RoleTemplate } from '@/components/workflow/RolePicker';
 import {
   fetchWorkflowGraph,
   createStage,
@@ -55,6 +56,7 @@ export default function WorkflowEditorPage() {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [rolePickerOpen, setRolePickerOpen] = useState(false);
 
   // Load existing workflow
   const { isLoading } = useQuery<WorkflowGraph>({
@@ -154,25 +156,27 @@ export default function WorkflowEditorPage() {
     },
   });
 
-  const addNode = useCallback(() => {
+  // Add node with role template
+  const addNodeWithRole = useCallback((role: RoleTemplate) => {
     const id = String(nextNodeId--);
     const newNode: Node = {
       id,
       type: 'stage',
-      position: { x: 250, y: nodes.length * 200 + 50 },
+      position: { x: 200 + (nodes.length % 3) * 100, y: nodes.length * 180 + 50 },
       data: {
-        titleTemplate: '',
-        assigneeSlug: '',
+        titleTemplate: `{feature_name} — ${role.label}`,
+        assigneeSlug: role.slug,
         initialStatus: 'todo',
         maxRuntime: null,
         maxRetries: 2,
-        skills: [],
+        skills: role.skills,
         goalMode: false,
         sortOrder: nodes.length,
       },
     };
     setNodes((nds) => [...nds, newNode]);
     setSelectedNodeId(id);
+    setRolePickerOpen(false);
   }, [nodes.length, setNodes]);
 
   const onConnect = useCallback(
@@ -276,7 +280,7 @@ export default function WorkflowEditorPage() {
         <div className="ml-auto flex items-center gap-2">
           <button
             type="button"
-            onClick={addNode}
+            onClick={() => setRolePickerOpen(true)}
             className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-semibold text-gray-700 shadow-sm transition-all hover:border-gray-300 hover:shadow"
           >
             <Plus className="h-3.5 w-3.5" />
@@ -375,6 +379,14 @@ export default function WorkflowEditorPage() {
           />
         )}
       </div>
+
+      {/* Role picker modal */}
+      {rolePickerOpen && (
+        <RolePicker
+          onSelect={addNodeWithRole}
+          onClose={() => setRolePickerOpen(false)}
+        />
+      )}
 
       {toast && (
         <Toast
