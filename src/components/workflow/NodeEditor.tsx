@@ -1,16 +1,15 @@
 'use client';
 
 import React from 'react';
-import { X, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { X, Trash2, User, Clock, RotateCcw, Zap, Tag } from 'lucide-react';
 import type { StageNodeData } from './StageNode';
 
 const ASSIGNEE_OPTIONS = [
-  { value: 'backend', label: 'Backend Developer' },
-  { value: 'frontend', label: 'Frontend Developer' },
-  { value: 'qa', label: 'QA Engineer' },
-  { value: 'cybersecurity', label: 'Cybersecurity' },
-  { value: 'devops', label: 'DevOps' },
+  { value: 'backend', label: 'Backend Developer', color: 'bg-blue-500' },
+  { value: 'frontend', label: 'Frontend Developer', color: 'bg-violet-500' },
+  { value: 'qa', label: 'QA Engineer', color: 'bg-emerald-500' },
+  { value: 'cybersecurity', label: 'Cybersecurity', color: 'bg-rose-500' },
+  { value: 'devops', label: 'DevOps', color: 'bg-amber-500' },
 ];
 
 const STATUS_OPTIONS = [
@@ -29,114 +28,126 @@ export function NodeEditor({ data, onChange, onDelete, onClose }: Props) {
   if (!data) return null;
 
   return (
-    <div className="absolute right-0 top-0 z-10 h-full w-80 border-l bg-white shadow-lg">
-      <div className="flex items-center justify-between border-b px-4 py-3">
-        <h3 className="text-sm font-semibold text-gray-900">Edit Stage</h3>
+    <div className="absolute right-0 top-0 z-20 flex h-full w-[340px] flex-col border-l bg-white shadow-xl">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b px-5 py-4">
+        <h3 className="text-sm font-bold text-gray-900">Stage Properties</h3>
         <button
           type="button"
           onClick={onClose}
-          className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+          className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
         >
           <X className="h-4 w-4" />
         </button>
       </div>
 
-      <div className="space-y-4 overflow-y-auto p-4" style={{ maxHeight: 'calc(100vh - 120px)' }}>
-        {/* Title Template */}
+      {/* Body */}
+      <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5">
+        {/* Title */}
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-700">
+          <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
             Title Template
           </label>
           <input
             type="text"
-            className="w-full rounded-lg border px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400/20"
             placeholder="Implement {feature_name}"
             value={data.titleTemplate}
             onChange={(e) => onChange({ titleTemplate: e.target.value })}
           />
-          <p className="mt-1 text-[10px] text-gray-400">
+          <p className="mt-1.5 text-[11px] text-gray-400">
             Use {'{param_name}'} for dynamic parameters
           </p>
         </div>
 
         {/* Assignee */}
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-700">
+          <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <User className="h-3 w-3" />
             Assignee
           </label>
-          <select
-            className="w-full rounded-lg border px-3 py-2 text-sm"
-            value={data.assigneeSlug}
-            onChange={(e) => onChange({ assigneeSlug: e.target.value })}
-          >
-            <option value="">None</option>
+          <div className="grid grid-cols-2 gap-2">
             {ASSIGNEE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onChange({ assigneeSlug: opt.value })}
+                className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition-all ${
+                  data.assigneeSlug === opt.value
+                    ? 'border-indigo-400 bg-indigo-50 text-indigo-700 shadow-sm'
+                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                }`}
+              >
+                <span className={`h-2 w-2 rounded-full ${opt.color}`} />
+                {opt.label.split(' ')[0]}
+              </button>
             ))}
-          </select>
+          </div>
         </div>
 
-        {/* Initial Status */}
+        {/* Status */}
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-700">
+          <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
             Initial Status
           </label>
-          <select
-            className="w-full rounded-lg border px-3 py-2 text-sm"
-            value={data.initialStatus}
-            onChange={(e) => onChange({ initialStatus: e.target.value })}
-          >
+          <div className="flex gap-2">
             {STATUS_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onChange({ initialStatus: opt.value })}
+                className={`flex-1 rounded-xl border px-3 py-2 text-xs font-medium transition-all ${
+                  data.initialStatus === opt.value
+                    ? 'border-indigo-400 bg-indigo-50 text-indigo-700'
+                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                }`}
+              >
                 {opt.label}
-              </option>
+              </button>
             ))}
-          </select>
+          </div>
         </div>
 
-        {/* Max Runtime */}
-        <div>
-          <label className="mb-1 block text-xs font-medium text-gray-700">
-            Max Runtime (seconds)
-          </label>
-          <input
-            type="number"
-            className="w-full rounded-lg border px-3 py-2 text-sm"
-            placeholder="3600"
-            value={data.maxRuntime ?? ''}
-            onChange={(e) =>
-              onChange({
-                maxRuntime: e.target.value ? parseInt(e.target.value) : null,
-              })
-            }
-          />
-        </div>
-
-        {/* Max Retries */}
-        <div>
-          <label className="mb-1 block text-xs font-medium text-gray-700">
-            Max Retries
-          </label>
-          <input
-            type="number"
-            className="w-full rounded-lg border px-3 py-2 text-sm"
-            value={data.maxRetries}
-            onChange={(e) =>
-              onChange({ maxRetries: parseInt(e.target.value) || 0 })
-            }
-          />
+        {/* Runtime & Retries row */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              <Clock className="h-3 w-3" />
+              Max Runtime (s)
+            </label>
+            <input
+              type="number"
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400/20"
+              placeholder="3600"
+              value={data.maxRuntime ?? ''}
+              onChange={(e) =>
+                onChange({ maxRuntime: e.target.value ? parseInt(e.target.value) : null })
+              }
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              <RotateCcw className="h-3 w-3" />
+              Max Retries
+            </label>
+            <input
+              type="number"
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400/20"
+              value={data.maxRetries}
+              onChange={(e) => onChange({ maxRetries: parseInt(e.target.value) || 0 })}
+            />
+          </div>
         </div>
 
         {/* Skills */}
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-700">
-            Skills (comma-separated)
+          <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <Tag className="h-3 w-3" />
+            Skills
           </label>
           <input
             type="text"
-            className="w-full rounded-lg border px-3 py-2 text-sm"
+            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm placeholder:text-gray-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400/20"
             placeholder="react, typescript, testing"
             value={data.skills.join(', ')}
             onChange={(e) =>
@@ -151,31 +162,37 @@ export function NodeEditor({ data, onChange, onDelete, onClose }: Props) {
         </div>
 
         {/* Goal Mode */}
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            id="goalMode"
-            className="rounded border-gray-300"
-            checked={data.goalMode}
-            onChange={(e) => onChange({ goalMode: e.target.checked })}
-          />
-          <label htmlFor="goalMode" className="text-xs font-medium text-gray-700">
-            Goal Mode (agent works autonomously)
-          </label>
+        <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Zap className="h-4 w-4 text-amber-500" />
+            <span className="text-xs font-medium text-gray-700">Goal Mode</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => onChange({ goalMode: !data.goalMode })}
+            className={`relative h-5 w-9 rounded-full transition-colors ${
+              data.goalMode ? 'bg-indigo-500' : 'bg-gray-300'
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
+                data.goalMode ? 'left-[18px]' : 'left-0.5'
+              }`}
+            />
+          </button>
         </div>
       </div>
 
-      {/* Delete button */}
-      <div className="absolute bottom-0 left-0 right-0 border-t bg-white p-4">
-        <Button
-          variant="destructive"
-          size="sm"
-          className="w-full"
+      {/* Footer */}
+      <div className="border-t px-5 py-4">
+        <button
+          type="button"
           onClick={onDelete}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100"
         >
-          <Trash2 className="h-4 w-4" />
+          <Trash2 className="h-3.5 w-3.5" />
           Delete Stage
-        </Button>
+        </button>
       </div>
     </div>
   );

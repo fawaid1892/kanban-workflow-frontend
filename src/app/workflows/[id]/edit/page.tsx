@@ -19,8 +19,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Save, Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { ArrowLeft, Save, Plus, Workflow } from 'lucide-react';
 import { Toast } from '@/components/ui/toast';
 import StageNode, { type StageNodeData } from '@/components/workflow/StageNode';
 import { NodeEditor } from '@/components/workflow/NodeEditor';
@@ -49,7 +48,6 @@ export default function WorkflowEditorPage() {
   const isNew = params.id === 'new';
   const workflowId = params.id as string;
 
-  // Workflow metadata
   const [workflowName, setWorkflowName] = useState('New Workflow');
   const [workflowDescription, setWorkflowDescription] = useState('');
 
@@ -66,11 +64,10 @@ export default function WorkflowEditorPage() {
       setWorkflowName(graph.workflow.name);
       setWorkflowDescription(graph.workflow.description ?? '');
 
-      // Convert stages to nodes
       const flowNodes: Node[] = graph.stages.map((stage, i) => ({
         id: String(stage.id),
         type: 'stage',
-        position: { x: 100 + (i % 3) * 300, y: 50 + Math.floor(i / 3) * 200 },
+        position: { x: 100 + (i % 3) * 320, y: 50 + Math.floor(i / 3) * 220 },
         data: {
           titleTemplate: stage.titleTemplate,
           assigneeSlug: stage.assigneeSlug ?? '',
@@ -83,7 +80,6 @@ export default function WorkflowEditorPage() {
         },
       }));
 
-      // Convert dependencies to edges
       const flowEdges: Edge[] = [];
       for (const stage of graph.stages) {
         for (const parentId of stage.parents ?? []) {
@@ -92,8 +88,8 @@ export default function WorkflowEditorPage() {
             source: String(parentId),
             target: String(stage.id),
             animated: true,
-            markerEnd: { type: MarkerType.ArrowClosed },
-            style: { stroke: '#6366f1', strokeWidth: 2 },
+            markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
+            style: { stroke: '#818cf8', strokeWidth: 2 },
           });
         }
       }
@@ -109,13 +105,11 @@ export default function WorkflowEditorPage() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (isNew) {
-        // Create workflow first
         const wf = await createWorkflow({
           name: workflowName,
           description: workflowDescription,
         });
 
-        // Create all stages and set deps
         const stageIdMap = new Map<string, string>();
         for (const node of nodes) {
           const d = node.data as unknown as StageNodeData;
@@ -132,12 +126,10 @@ export default function WorkflowEditorPage() {
           stageIdMap.set(node.id, String(stage.id));
         }
 
-        // Set dependencies
         for (const edge of edges) {
           const sourceId = stageIdMap.get(edge.source);
           const targetId = stageIdMap.get(edge.target);
           if (sourceId && targetId) {
-            // Target depends on source (source is parent of target)
             const existingParents = edges
               .filter((e) => e.target === edge.target)
               .map((e) => stageIdMap.get(e.source))
@@ -162,13 +154,12 @@ export default function WorkflowEditorPage() {
     },
   });
 
-  // Add new node
   const addNode = useCallback(() => {
     const id = String(nextNodeId--);
     const newNode: Node = {
       id,
       type: 'stage',
-      position: { x: 250, y: nodes.length * 180 + 50 },
+      position: { x: 250, y: nodes.length * 200 + 50 },
       data: {
         titleTemplate: '',
         assigneeSlug: '',
@@ -184,7 +175,6 @@ export default function WorkflowEditorPage() {
     setSelectedNodeId(id);
   }, [nodes.length, setNodes]);
 
-  // Handle edge connection
   const onConnect = useCallback(
     (params: Connection) => {
       setEdges((eds) =>
@@ -192,8 +182,8 @@ export default function WorkflowEditorPage() {
           {
             ...params,
             animated: true,
-            markerEnd: { type: MarkerType.ArrowClosed },
-            style: { stroke: '#6366f1', strokeWidth: 2 },
+            markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
+            style: { stroke: '#818cf8', strokeWidth: 2 },
           },
           eds,
         ),
@@ -202,7 +192,6 @@ export default function WorkflowEditorPage() {
     [setEdges],
   );
 
-  // Handle node click
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
       setSelectedNodeId(node.id);
@@ -210,18 +199,15 @@ export default function WorkflowEditorPage() {
     [],
   );
 
-  // Handle pane click (deselect)
   const onPaneClick = useCallback(() => {
     setSelectedNodeId(null);
   }, []);
 
-  // Selected node data
   const selectedNode = useMemo(
     () => nodes.find((n) => n.id === selectedNodeId) ?? null,
     [nodes, selectedNodeId],
   );
 
-  // Update node data
   const updateNodeData = useCallback(
     (changes: Partial<StageNodeData>) => {
       if (!selectedNodeId) return;
@@ -236,7 +222,6 @@ export default function WorkflowEditorPage() {
     [selectedNodeId, setNodes],
   );
 
-  // Delete selected node
   const deleteSelectedNode = useCallback(() => {
     if (!selectedNodeId) return;
     setNodes((nds) => nds.filter((n) => n.id !== selectedNodeId));
@@ -250,56 +235,73 @@ export default function WorkflowEditorPage() {
 
   if (!isNew && isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
+      <div className="flex h-screen items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+          <p className="text-sm text-gray-500">Loading workflow...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="relative flex h-[calc(100vh-4rem)] flex-col">
-      {/* Toolbar */}
-      <div className="flex items-center gap-3 border-b bg-white px-4 py-2">
+    <div className="relative flex h-screen flex-col bg-gray-50">
+      {/* Top toolbar — Gumloop style */}
+      <div className="flex items-center border-b bg-white px-5 py-3">
         <button
           type="button"
           onClick={() => router.push(isNew ? '/workflows' : `/workflows/${workflowId}`)}
-          className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900"
+          className="mr-3 flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
         >
           <ArrowLeft className="h-4 w-4" />
         </button>
 
-        {isNew ? (
-          <input
-            type="text"
-            className="border-b border-transparent text-lg font-bold text-gray-900 focus:border-indigo-500 focus:outline-none"
-            value={workflowName}
-            onChange={(e) => setWorkflowName(e.target.value)}
-            placeholder="Workflow Name"
-          />
-        ) : (
-          <h1 className="text-lg font-bold text-gray-900">{workflowName}</h1>
-        )}
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50">
+            <Workflow className="h-4 w-4 text-indigo-500" />
+          </div>
+          {isNew ? (
+            <input
+              type="text"
+              className="border-b border-transparent text-base font-bold text-gray-900 focus:border-indigo-400 focus:outline-none"
+              value={workflowName}
+              onChange={(e) => setWorkflowName(e.target.value)}
+              placeholder="Workflow Name"
+            />
+          ) : (
+            <h1 className="text-base font-bold text-gray-900">{workflowName}</h1>
+          )}
+        </div>
 
         <div className="ml-auto flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={addNode}>
-            <Plus className="h-4 w-4" />
+          <button
+            type="button"
+            onClick={addNode}
+            className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-semibold text-gray-700 shadow-sm transition-all hover:border-gray-300 hover:shadow"
+          >
+            <Plus className="h-3.5 w-3.5" />
             Add Stage
-          </Button>
+          </button>
           {isNew && (
-            <Button
-              size="sm"
+            <button
+              type="button"
               onClick={() => saveMutation.mutate()}
-              loading={saveMutation.isPending}
+              disabled={saveMutation.isPending}
+              className="flex items-center gap-1.5 rounded-xl bg-indigo-500 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:bg-indigo-600 hover:shadow disabled:opacity-50"
             >
-              <Save className="h-4 w-4" />
+              {saveMutation.isPending ? (
+                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              ) : (
+                <Save className="h-3.5 w-3.5" />
+              )}
               Save
-            </Button>
+            </button>
           )}
         </div>
       </div>
 
-      {/* Flow canvas */}
-      <div className="flex-1">
+      {/* Canvas area */}
+      <div className="relative flex-1">
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -314,12 +316,13 @@ export default function WorkflowEditorPage() {
           snapGrid={[16, 16]}
           defaultEdgeOptions={{
             animated: true,
-            markerEnd: { type: MarkerType.ArrowClosed },
-            style: { stroke: '#6366f1', strokeWidth: 2 },
+            markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
+            style: { stroke: '#818cf8', strokeWidth: 2 },
           }}
           proOptions={{ hideAttribution: true }}
+          className="!bg-gray-50"
         >
-          <Controls />
+          <Controls className="!rounded-xl !border !border-gray-200 !shadow-sm" />
           <MiniMap
             nodeColor={(node) => {
               const d = node.data as unknown as StageNodeData;
@@ -332,20 +335,46 @@ export default function WorkflowEditorPage() {
               };
               return colors[d.assigneeSlug] ?? '#9ca3af';
             }}
+            className="!rounded-xl !border !border-gray-200 !shadow-sm"
+            maskColor="rgba(249, 250, 251, 0.7)"
           />
-          <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
+          <Background
+            variant={BackgroundVariant.Dots}
+            gap={24}
+            size={1}
+            color="#e5e7eb"
+          />
         </ReactFlow>
-      </div>
 
-      {/* Node editor side panel */}
-      {selectedNode && (
-        <NodeEditor
-          data={selectedNode.data as unknown as StageNodeData}
-          onChange={updateNodeData}
-          onDelete={deleteSelectedNode}
-          onClose={() => setSelectedNodeId(null)}
-        />
-      )}
+        {/* Empty state */}
+        {nodes.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-gray-300 bg-white/80 px-8 py-10 text-center shadow-sm backdrop-blur-sm">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50">
+                <Plus className="h-6 w-6 text-indigo-400" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-700">
+                  No stages yet
+                </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  Click &ldquo;Add Stage&rdquo; to start building your workflow
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Node editor side panel */}
+        {selectedNode && (
+          <NodeEditor
+            data={selectedNode.data as unknown as StageNodeData}
+            onChange={updateNodeData}
+            onDelete={deleteSelectedNode}
+            onClose={() => setSelectedNodeId(null)}
+          />
+        )}
+      </div>
 
       {toast && (
         <Toast
