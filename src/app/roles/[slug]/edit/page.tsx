@@ -16,12 +16,17 @@ import { Toast } from '@/components/ui/toast';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { SandboxLogs } from '@/components/sandbox-logs';
+import { ModelPicker } from '@/components/model-picker';
+import { PromptEditor } from '@/components/prompt-editor';
 import {
   fetchRole,
   updateRole,
   triggerSandboxBuild,
+  fetchModelConfig,
+  updateModelConfig,
 } from '@/lib/role-api';
 import type { RoleFormData } from '@/types/role';
+import type { ModelConfigPayload } from '@/lib/role-api';
 
 type TabId = 'general' | 'sandbox' | 'model';
 
@@ -94,10 +99,18 @@ export default function EditRolePage() {
     enabled: !!slug,
   });
 
+  // ── Fetch model config (separate endpoint) ──
+  const { data: modelConfig } = useQuery({
+    queryKey: ['role-model-config', slug],
+    queryFn: () => fetchModelConfig(slug),
+    enabled: !!slug && activeTab === 'model',
+  });
+
   // Pre-populate form when data arrives
   useEffect(() => {
     if (role) {
-      setForm({
+      setForm((prev) => ({
+        ...prev,
         slug: role.slug,
         name: role.name,
         description: role.description,
@@ -115,11 +128,27 @@ export default function EditRolePage() {
         modelMaxTokens: role.modelMaxTokens,
         modelSystemPrompt: role.modelSystemPrompt ?? '',
         modelMaxTurns: role.modelMaxTurns,
-      });
+      }));
     }
   }, [role]);
 
-  // ── Update mutation ──
+  // Pre-populate model fields from dedicated endpoint
+  useEffect(() => {
+    if (modelConfig) {
+      setForm((prev) => ({
+        ...prev,
+        modelMode: modelConfig.mode,
+        modelProvider: modelConfig.provider,
+        modelName: modelConfig.name,
+        modelTemperature: modelConfig.temperature,
+        modelMaxTokens: modelConfig.maxTokens,
+        modelSystemPrompt: modelConfig.systemPrompt ?? '',
+        modelMaxTurns: modelConfig.maxTurns,
+      }));
+    }
+  }, [modelConfig]);
+
+  // ── Update mutation (general / sandbox) ──
   const updateMutation = useMutation({
     mutationFn: () => updateRole(slug, form),
     onSuccess: () => {
@@ -128,6 +157,17 @@ export default function EditRolePage() {
     },
     onError: (err: Error) => {
       setToast({ message: err.message || 'Failed to update role', type: 'error' });
+    },
+  });
+
+  // ── Model config mutation ──
+  const modelMutation = useMutation({
+    mutationFn: (payload: ModelConfigPayload) => updateModelConfig(slug, payload),
+    onSuccess: () => {
+      setToast({ message: 'Model config saved successfully', type: 'success' });
+    },
+    onError: (err: Error) => {
+      setToast({ message: err.message || 'Failed to save model config', type: 'error' });
     },
   });
 
@@ -168,7 +208,18 @@ export default function EditRolePage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (validate()) {
+    if (activeTab === 'model') {
+      const payload: ModelConfigPayload = {
+        mode: form.modelMode,
+        provider: form.modelProvider ?? '',
+        name: form.modelName ?? '',
+        temperature: form.modelTemperature,
+        maxTokens: form.modelMaxTokens,
+        systemPrompt: form.modelSystemPrompt,
+        maxTurns: form.modelMaxTurns,
+      };
+      modelMutation.mutate(payload);
+    } else if (validate()) {
       updateMutation.mutate();
     }
   };
@@ -186,6 +237,9 @@ export default function EditRolePage() {
   const handleBuild = () => {
     buildMutation.mutate();
   };
+
+  const isPending =
+    updateMutation.isPending || modelMutation.isPending || buildMutation.isPending;
 
   // ── Loading skeleton ──
   if (isLoading) {
@@ -520,42 +574,39 @@ export default function EditRolePage() {
                   </select>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Input
-                    label="Provider"
-                    placeholder="e.g. openai"
-                    value={form.modelProvider ?? ''}
+                <ModelPicker
+                  provider={form.modelProvider ?? ''}
+                  modelName={form.modelName ?? ''}
+                  onProviderChange={(p: string) => updateField('modelProvider', p)}
+                  onModelChange={(m: string) => updateField('modelName', m)}
+                />
+
+                {/* Temperature slider */}
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Temperature: {form.modelTemperature ?? 0.7}
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="2"
+                    step="0.1"
+                    value={form.modelTemperature ?? 0.7}
                     onChange={(e) =>
-                      updateField('modelProvider', e.target.value)
+                      updateField(
+                        'modelTemperature',
+                        Number(e.target.value),
+                      )
                     }
+                    className="w-full accent-indigo-600"
                   />
-                  <Input
-                    label="Model Name"
-                    placeholder="e.g. gpt-4"
-                    value={form.modelName ?? ''}
-                    onChange={(e) =>
-                      updateField('modelName', e.target.value)
-                    }
-                  />
+                  <div className="flex justify-between text-xs text-gray-400">
+                    <span>0</span>
+                    <span>2</span>
+                  </div>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Input
-                    label="Temperature"
-                    type="number"
-                    placeholder="0.7"
-                    step="0.1"
-                    min="0"
-                    max="2"
-                    value={form.modelTemperature ?? ''}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      updateField(
-                        'modelTemperature',
-                        val === '' ? undefined : Number(val),
-                      );
-                    }}
-                  />
                   <Input
                     label="Max Tokens"
                     type="number"
@@ -569,35 +620,25 @@ export default function EditRolePage() {
                       );
                     }}
                   />
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
-                    System Prompt
-                  </label>
-                  <textarea
-                    className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    rows={4}
-                    placeholder="You are a helpful assistant that..."
-                    value={form.modelSystemPrompt ?? ''}
-                    onChange={(e) =>
-                      updateField('modelSystemPrompt', e.target.value)
-                    }
+                  <Input
+                    label="Max Turns"
+                    type="number"
+                    placeholder="10"
+                    value={form.modelMaxTurns ?? ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      updateField(
+                        'modelMaxTurns',
+                        val === '' ? undefined : Number(val),
+                      );
+                    }}
                   />
                 </div>
 
-                <Input
-                  label="Max Turns"
-                  type="number"
-                  placeholder="10"
-                  value={form.modelMaxTurns ?? ''}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    updateField(
-                      'modelMaxTurns',
-                      val === '' ? undefined : Number(val),
-                    );
-                  }}
+                <PromptEditor
+                  value={form.modelSystemPrompt ?? ''}
+                  onChange={(v: string) => updateField('modelSystemPrompt', v)}
+                  placeholder="Leave empty to use default system prompt"
                 />
               </>
             )}
@@ -608,12 +649,12 @@ export default function EditRolePage() {
               type="button"
               variant="outline"
               onClick={() => router.push('/roles')}
-              disabled={updateMutation.isPending}
+              disabled={isPending}
             >
               Cancel
             </Button>
-            <Button type="submit" loading={updateMutation.isPending}>
-              Save Changes
+            <Button type="submit" loading={isPending}>
+              {activeTab === 'model' ? 'Save Model Config' : 'Save Changes'}
             </Button>
           </CardFooter>
         </form>

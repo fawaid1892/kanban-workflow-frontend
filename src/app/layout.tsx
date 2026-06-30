@@ -56,6 +56,12 @@ export default function RootLayout({
                   >
                     Board
                   </a>
+                  <a
+                    href="/settings/model"
+                    className="block rounded-md px-3 py-2 text-sm font-medium text-muted hover:bg-border/50"
+                  >
+                    Settings
+                  </a>
                 </nav>
               </aside>
 

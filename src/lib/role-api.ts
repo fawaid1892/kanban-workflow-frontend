@@ -47,3 +47,31 @@ export async function fetchSandboxBuildLogs(slug: string): Promise<SandboxBuildL
   const response = await api.get<SandboxBuildLog>(`/roles/${slug}/sandbox/logs`);
   return response.data;
 }
+
+// ── Model config ──
+
+export interface ModelConfigPayload {
+  mode: 'shared' | 'dedicated';
+  provider: string;
+  name: string;
+  temperature?: number;
+  maxTokens?: number;
+  systemPrompt?: string;
+  maxTurns?: number;
+}
+
+export async function fetchModelConfig(slug: string): Promise<ModelConfigPayload> {
+  const response = await api.get<ModelConfigPayload>(`/roles/${slug}/model`);
+  return response.data;
+}
+
+export async function updateModelConfig(
+  slug: string,
+  payload: ModelConfigPayload,
+): Promise<ModelConfigPayload> {
+  const response = await api.put<ModelConfigPayload>(
+    `/roles/${slug}/model`,
+    payload,
+  );
+  return response.data;
+}
