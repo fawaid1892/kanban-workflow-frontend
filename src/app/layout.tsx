@@ -4,6 +4,7 @@ import "./globals.css";
 import { QueryProvider } from "@/lib/query-provider";
 import { SocketProvider } from "@/lib/socket-provider";
 import { ConnectionStatus } from "@/components/connection-status";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -66,7 +67,9 @@ export default function RootLayout({
               </aside>
 
               {/* Main content */}
-              <main className="flex-1">{children}</main>
+              <main className="flex-1">
+                <ErrorBoundary>{children}</ErrorBoundary>
+              </main>
             </div>
             <ConnectionStatus />
           </QueryProvider>
