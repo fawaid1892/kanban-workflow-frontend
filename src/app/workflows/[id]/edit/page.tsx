@@ -23,7 +23,7 @@ import { ArrowLeft, Save, Plus, Workflow } from 'lucide-react';
 import { Toast } from '@/components/ui/toast';
 import StageNode, { type StageNodeData } from '@/components/workflow/StageNode';
 import { NodeEditor } from '@/components/workflow/NodeEditor';
-import { RolePicker, type RoleTemplate } from '@/components/workflow/RolePicker';
+import { RolePicker } from '@/components/workflow/RolePicker';
 import {
   fetchWorkflowGraph,
   createStage,
@@ -157,13 +157,14 @@ export default function WorkflowEditorPage() {
   });
 
   // Add node with role template
-  const addNodeWithRole = useCallback((role: RoleTemplate) => {
+  const addNodeWithRole = useCallback((role: { label: string; slug: string; skills: string[] }) => {
     const id = String(nextNodeId--);
     const newNode: Node = {
       id,
       type: 'stage',
       position: { x: 200 + (nodes.length % 3) * 100, y: nodes.length * 180 + 50 },
       data: {
+        roleLabel: role.label,
         titleTemplate: `{feature_name} — ${role.label}`,
         assigneeSlug: role.slug,
         initialStatus: 'todo',

@@ -1,16 +1,8 @@
 'use client';
 
 import React from 'react';
-import { X, Trash2, User, Clock, RotateCcw, Zap, Tag } from 'lucide-react';
+import { X, Trash2, Clock, RotateCcw, Zap, Tag } from 'lucide-react';
 import type { StageNodeData } from './StageNode';
-
-const ASSIGNEE_OPTIONS = [
-  { value: 'backend', label: 'Backend Developer', color: 'bg-blue-500' },
-  { value: 'frontend', label: 'Frontend Developer', color: 'bg-violet-500' },
-  { value: 'qa', label: 'QA Engineer', color: 'bg-emerald-500' },
-  { value: 'cybersecurity', label: 'Cybersecurity', color: 'bg-rose-500' },
-  { value: 'devops', label: 'DevOps', color: 'bg-amber-500' },
-];
 
 const STATUS_OPTIONS = [
   { value: 'todo', label: 'To Do' },
@@ -31,7 +23,12 @@ export function NodeEditor({ data, onChange, onDelete, onClose }: Props) {
     <div className="absolute right-0 top-0 z-20 flex h-full w-[340px] flex-col border-l bg-white shadow-xl">
       {/* Header */}
       <div className="flex items-center justify-between border-b px-5 py-4">
-        <h3 className="text-sm font-bold text-gray-900">Stage Properties</h3>
+        <div className="flex items-center gap-2">
+          <span className="rounded-md bg-gray-100 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-gray-500">
+            {data.roleLabel || data.assigneeSlug || 'Stage'}
+          </span>
+          <h3 className="text-sm font-bold text-gray-900">Properties</h3>
+        </div>
         <button
           type="button"
           onClick={onClose}
@@ -43,7 +40,7 @@ export function NodeEditor({ data, onChange, onDelete, onClose }: Props) {
 
       {/* Body */}
       <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5">
-        {/* Title */}
+        {/* Title Template */}
         <div>
           <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
             Title Template
@@ -58,31 +55,6 @@ export function NodeEditor({ data, onChange, onDelete, onClose }: Props) {
           <p className="mt-1.5 text-[11px] text-gray-400">
             Use {'{param_name}'} for dynamic parameters
           </p>
-        </div>
-
-        {/* Assignee */}
-        <div>
-          <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
-            <User className="h-3 w-3" />
-            Assignee
-          </label>
-          <div className="grid grid-cols-2 gap-2">
-            {ASSIGNEE_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => onChange({ assigneeSlug: opt.value })}
-                className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition-all ${
-                  data.assigneeSlug === opt.value
-                    ? 'border-indigo-400 bg-indigo-50 text-indigo-700 shadow-sm'
-                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-                }`}
-              >
-                <span className={`h-2 w-2 rounded-full ${opt.color}`} />
-                {opt.label.split(' ')[0]}
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Status */}
