@@ -39,3 +39,6 @@ export type {
   CardContentProps,
   CardFooterProps,
 } from './card';
+
+export { Toast } from './toast';
+export type { ToastProps } from './toast';
