@@ -197,3 +197,76 @@ export async function fetchActivityLog(id: string): Promise<ActivityEntry[]> {
   const response = await api.get<ActivityEntry[]>(`/workflows/${id}/activity`);
   return response.data;
 }
+
+// ── Versions ──
+
+export interface WorkflowVersion {
+  id: string;
+  version: number;
+  stagesSnapshot: unknown;
+  depsSnapshot: unknown;
+  changeSummary: string | null;
+  createdAt: string;
+}
+
+export async function fetchVersions(id: string): Promise<WorkflowVersion[]> {
+  const response = await api.get<WorkflowVersion[]>(`/workflows/${id}/versions`);
+  return response.data;
+}
+
+export async function createVersion(id: string, changeSummary?: string): Promise<{ version: number }> {
+  const response = await api.post<{ version: number }>(`/workflows/${id}/versions`, { changeSummary });
+  return response.data;
+}
+
+// ── Webhook ──
+
+export interface WebhookConfig {
+  id: string;
+  url: string;
+  secret: string | null;
+  events: string[];
+  isActive: boolean;
+}
+
+export async function fetchWebhook(id: string): Promise<WebhookConfig | null> {
+  const response = await api.get<WebhookConfig | null>(`/workflows/${id}/webhook`);
+  return response.data;
+}
+
+export async function updateWebhook(id: string, config: Partial<WebhookConfig>): Promise<WebhookConfig> {
+  const response = await api.put<WebhookConfig>(`/workflows/${id}/webhook`, config);
+  return response.data;
+}
+
+// ── Board Columns ──
+
+export interface BoardColumn {
+  id: string;
+  key: string;
+  label: string;
+  color: string;
+  sortOrder: number;
+  isDefault: boolean;
+}
+
+export async function fetchColumns(workflowId: string): Promise<BoardColumn[]> {
+  const response = await api.get<BoardColumn[]>(`/workflows/${workflowId}/columns`);
+  return response.data;
+}
+
+export async function createColumn(workflowId: string, data: { key: string; label: string; color?: string }): Promise<BoardColumn> {
+  const response = await api.post<BoardColumn>(`/workflows/${workflowId}/columns`, data);
+  return response.data;
+}
+
+export async function deleteColumn(workflowId: string, columnId: string): Promise<void> {
+  await api.delete(`/workflows/${workflowId}/columns/${columnId}`);
+}
+
+// ── Search ──
+
+export async function searchWorkflows(query: string): Promise<Workflow[]> {
+  const response = await api.get<Workflow[]>(`/workflows/search?q=${encodeURIComponent(query)}`);
+  return response.data;
+}

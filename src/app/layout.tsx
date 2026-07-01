@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "@/lib/query-provider";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { ShortcutsHelp } from "@/components/shortcuts-help";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const inter = Inter({
@@ -59,6 +60,7 @@ export default function RootLayout({
               <ErrorBoundary>{children}</ErrorBoundary>
             </main>
           </div>
+          <ShortcutsHelp />
         </QueryProvider>
       </body>
     </html>
