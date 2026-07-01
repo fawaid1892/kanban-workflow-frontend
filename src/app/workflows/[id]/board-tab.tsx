@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { RefreshCw, Search } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { fetchBoardTasks } from '@/lib/board-api';
-import type { BoardTask } from '@/types/board';
+import { fetchBoardTasks, fetchBoardStats } from '@/lib/board-api';
+import type { BoardTask, BoardStats } from '@/types/board';
 
 const COLUMNS = [
   { key: 'todo', label: 'To Do', color: 'bg-gray-100' },
@@ -16,6 +16,15 @@ const COLUMNS = [
   { key: 'done', label: 'Done', color: 'bg-green-50' },
   { key: 'failed', label: 'Failed', color: 'bg-red-100' },
 ] as const;
+
+const STATUS_COLORS: Record<string, string> = {
+  running: 'bg-blue-100 text-blue-700',
+  done: 'bg-green-100 text-green-700',
+  failed: 'bg-red-100 text-red-700',
+  blocked: 'bg-orange-100 text-orange-700',
+  triage: 'bg-yellow-100 text-yellow-700',
+  todo: 'bg-gray-100 text-gray-600',
+};
 
 function formatAge(ts: number): string {
   const diff = Date.now() / 1000 - ts;
@@ -39,6 +48,12 @@ export default function WorkflowBoardTab({ workflowId }: { workflowId: string })
       limit: 200,
     }),
     refetchInterval: 5000,
+  });
+
+  const { data: stats } = useQuery<BoardStats>({
+    queryKey: ['board-stats', workflowId],
+    queryFn: () => fetchBoardStats(workflowId),
+    refetchInterval: 10000,
   });
 
   const tasksByStatus = React.useMemo(() => {
@@ -71,6 +86,23 @@ export default function WorkflowBoardTab({ workflowId }: { workflowId: string })
 
   return (
     <div className="p-4 sm:p-6">
+      {/* Stats header */}
+      {stats && stats.total > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5">
+          <span className="text-xs font-semibold text-gray-500">Total:</span>
+          <span className="text-sm font-bold text-gray-900">{stats.total}</span>
+          <span className="mx-1 h-4 w-px bg-gray-200" />
+          {Object.entries(stats.byStatus).map(([status, count]) => (
+            <span
+              key={status}
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${STATUS_COLORS[status] ?? 'bg-gray-100 text-gray-600'}`}
+            >
+              {status}: {count}
+            </span>
+          ))}
+        </div>
+      )}
+
       {/* Filters */}
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="relative">

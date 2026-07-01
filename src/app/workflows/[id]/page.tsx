@@ -4,20 +4,22 @@ import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Pencil, Trash2, LayoutGrid, Settings } from 'lucide-react';
+import { ArrowLeft, Pencil, Trash2, LayoutGrid, Settings, Play, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { fetchWorkflow, deleteWorkflow } from '@/lib/workflow-api';
 import type { Workflow } from '@/types/workflow';
 import WorkflowBoardTab from './board-tab';
 import WorkflowEditTab from './edit-tab';
 import WorkflowSettingsTab from './settings-tab';
+import WorkflowRunTab from './run-tab';
+import WorkflowHistoryTab from './history-tab';
 
 export default function WorkflowDetailPage() {
   const params = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
   const id = params.id as string;
-  const [activeTab, setActiveTab] = useState<'board' | 'edit' | 'settings'>('board');
+  const [activeTab, setActiveTab] = useState<'board' | 'edit' | 'settings' | 'run' | 'history'>('board');
   const [deleteTarget, setDeleteTarget] = useState(false);
 
   const { data: workflow, isLoading } = useQuery<Workflow>({
@@ -58,6 +60,8 @@ export default function WorkflowDetailPage() {
   const tabs = [
     { key: 'board' as const, label: 'Board', icon: LayoutGrid },
     { key: 'edit' as const, label: 'Edit', icon: Pencil },
+    { key: 'run' as const, label: 'Run', icon: Play },
+    { key: 'history' as const, label: 'History', icon: History },
     { key: 'settings' as const, label: 'Settings', icon: Settings },
   ];
 
@@ -115,6 +119,8 @@ export default function WorkflowDetailPage() {
       <div className="flex-1">
         {activeTab === 'board' && <WorkflowBoardTab workflowId={id} />}
         {activeTab === 'edit' && <WorkflowEditTab workflowId={id} />}
+        {activeTab === 'run' && <WorkflowRunTab workflowId={id} />}
+        {activeTab === 'history' && <WorkflowHistoryTab workflowId={id} />}
         {activeTab === 'settings' && <WorkflowSettingsTab workflowId={id} />}
       </div>
 
