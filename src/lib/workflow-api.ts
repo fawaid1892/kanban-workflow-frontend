@@ -331,3 +331,26 @@ export async function fetchTimeLogs(workflowId: string): Promise<TimeLog[]> {
   const response = await api.get<TimeLog[]>(`/workflows/${workflowId}/time-logs`);
   return response.data;
 }
+
+// ── Version Comparison ──
+
+export interface VersionComparison {
+  version1: { id: string; version: number; createdAt: string };
+  version2: { id: string; version: number; createdAt: string };
+  added: unknown[];
+  removed: unknown[];
+  changed: { before: unknown; after: unknown; diff: string[] }[];
+  unchanged: unknown[];
+}
+
+export async function compareVersions(id: string, v1: number, v2: number): Promise<VersionComparison> {
+  const response = await api.get<VersionComparison>(`/workflows/${id}/versions/compare?v1=${v1}&v2=${v2}`);
+  return response.data;
+}
+
+// ── Batch Export ──
+
+export async function exportAllWorkflows(): Promise<unknown[]> {
+  const response = await api.get<unknown[]>('/workflows/export-all');
+  return response.data;
+}

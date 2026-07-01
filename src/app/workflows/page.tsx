@@ -3,8 +3,8 @@
 import React, { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Workflow, Play, Trash2, Clock, Copy, Upload, Star, Archive } from 'lucide-react';
-import { fetchWorkflows, deleteWorkflow, duplicateWorkflow, importWorkflow, toggleFavorite, toggleArchive, type WorkflowExport } from '@/lib/workflow-api';
+import { Plus, Workflow, Play, Trash2, Clock, Copy, Upload, Star, Archive, Download } from 'lucide-react';
+import { fetchWorkflows, deleteWorkflow, duplicateWorkflow, importWorkflow, toggleFavorite, toggleArchive, exportAllWorkflows, type WorkflowExport } from '@/lib/workflow-api';
 import type { Workflow as WorkflowType } from '@/types/workflow';
 
 export default function WorkflowsPage() {
@@ -43,6 +43,17 @@ export default function WorkflowsPage() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const handleBatchExport = async () => {
+    const data = await exportAllWorkflows();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'all-workflows.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 dark:bg-gray-900 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-5xl">
@@ -63,6 +74,14 @@ export default function WorkflowsPage() {
             >
               <Archive className="h-3.5 w-3.5" />
               {showArchived ? 'Hide Archived' : 'Show Archived'}
+            </button>
+            <button
+              type="button"
+              onClick={handleBatchExport}
+              className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
+              title="Export all workflows"
+            >
+              <Download className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Export All</span>
             </button>
             <input
               ref={fileInputRef}
