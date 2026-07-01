@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Pencil, Trash2, LayoutGrid, Settings, Play, History, Copy, Download } from 'lucide-react';
+import { ArrowLeft, Pencil, Trash2, LayoutGrid, Settings, Play, History, Copy, Download, BarChart3, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { fetchWorkflow, deleteWorkflow, duplicateWorkflow, exportWorkflow } from '@/lib/workflow-api';
 import type { Workflow } from '@/types/workflow';
@@ -15,6 +15,8 @@ const WorkflowEditTab = dynamic(() => import('./edit-tab'), { loading: () => <Ta
 const WorkflowSettingsTab = dynamic(() => import('./settings-tab'), { loading: () => <TabSkeleton /> });
 const WorkflowRunTab = dynamic(() => import('./run-tab'), { loading: () => <TabSkeleton /> });
 const WorkflowHistoryTab = dynamic(() => import('./history-tab'), { loading: () => <TabSkeleton /> });
+const WorkflowAnalyticsTab = dynamic(() => import('./analytics-tab'), { loading: () => <TabSkeleton /> });
+const WorkflowActivityTab = dynamic(() => import('./activity-tab'), { loading: () => <TabSkeleton /> });
 
 function TabSkeleton() {
   return (
@@ -30,7 +32,7 @@ export default function WorkflowDetailPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const id = params.id as string;
-  const [activeTab, setActiveTab] = useState<'board' | 'edit' | 'settings' | 'run' | 'history'>('board');
+  const [activeTab, setActiveTab] = useState<'board' | 'edit' | 'settings' | 'run' | 'history' | 'analytics' | 'activity'>('board');
   const [deleteTarget, setDeleteTarget] = useState(false);
 
   const { data: workflow, isLoading } = useQuery<Workflow>({
@@ -92,6 +94,8 @@ export default function WorkflowDetailPage() {
     { key: 'edit' as const, label: 'Edit', icon: Pencil },
     { key: 'run' as const, label: 'Run', icon: Play },
     { key: 'history' as const, label: 'History', icon: History },
+    { key: 'analytics' as const, label: 'Analytics', icon: BarChart3 },
+    { key: 'activity' as const, label: 'Activity', icon: Activity },
     { key: 'settings' as const, label: 'Settings', icon: Settings },
   ];
 
@@ -166,6 +170,8 @@ export default function WorkflowDetailPage() {
         {activeTab === 'edit' && <WorkflowEditTab workflowId={id} />}
         {activeTab === 'run' && <WorkflowRunTab workflowId={id} />}
         {activeTab === 'history' && <WorkflowHistoryTab workflowId={id} />}
+        {activeTab === 'analytics' && <WorkflowAnalyticsTab workflowId={id} />}
+        {activeTab === 'activity' && <WorkflowActivityTab workflowId={id} />}
         {activeTab === 'settings' && <WorkflowSettingsTab workflowId={id} />}
       </div>
 

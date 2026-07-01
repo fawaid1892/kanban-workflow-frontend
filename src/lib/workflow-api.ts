@@ -152,3 +152,48 @@ export async function addTaskComment(workflowId: string, taskId: string, body: s
   const response = await api.post<{ ok: boolean }>(`/workflows/${workflowId}/board/tasks/${taskId}/comments`, { body, author: author ?? 'user' });
   return response.data;
 }
+
+// ── Board: Bulk Status + Priority ──
+
+export async function bulkUpdateStatus(workflowId: string, taskIds: string[], status: string): Promise<{ updated: number }> {
+  const response = await api.put<{ updated: number }>(`/workflows/${workflowId}/board/tasks/bulk-status`, { taskIds, status });
+  return response.data;
+}
+
+export async function updateTaskPriority(workflowId: string, taskId: string, priority: number): Promise<{ ok: boolean }> {
+  const response = await api.put<{ ok: boolean }>(`/workflows/${workflowId}/board/tasks/${taskId}/priority`, { priority });
+  return response.data;
+}
+
+// ── Analytics ──
+
+export interface WorkflowAnalytics {
+  totalRuns: number;
+  completedRuns: number;
+  failedRuns: number;
+  runningRuns: number;
+  successRate: number;
+  avgDurationSeconds: number;
+  runsPerDay: { date: string; count: number }[];
+}
+
+export async function fetchWorkflowAnalytics(id: string): Promise<WorkflowAnalytics> {
+  const response = await api.get<WorkflowAnalytics>(`/workflows/${id}/analytics`);
+  return response.data;
+}
+
+// ── Activity Log ──
+
+export interface ActivityEntry {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  details: unknown;
+  createdAt: string;
+}
+
+export async function fetchActivityLog(id: string): Promise<ActivityEntry[]> {
+  const response = await api.get<ActivityEntry[]>(`/workflows/${id}/activity`);
+  return response.data;
+}
