@@ -3,9 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { RefreshCw, Search } from 'lucide-react';
+import { DndContext, closestCenter, DragOverlay, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { RefreshCw, Search, GripVertical } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { fetchBoardTasks, fetchBoardStats } from '@/lib/board-api';
+import { updateTaskStatus } from '@/lib/workflow-api';
 import { getSocket, joinWorkflowRoom, leaveWorkflowRoom } from '@/lib/socket';
 import type { BoardTask, BoardStats } from '@/types/board';
 
@@ -91,6 +95,22 @@ export default function WorkflowBoardTab({ workflowId }: { workflowId: string })
     return Array.from(new Set(tasks.map((t) => t.assignee))).sort();
   }, [tasks]);
 
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+  const [activeTask, setActiveTask] = useState<BoardTask | null>(null);
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveTask(null);
+    if (!over) return;
+    const taskId = String(active.id);
+    const newStatus = String(over.id);
+    if (taskId && newStatus && COLUMNS.some((c) => c.key === newStatus)) {
+      await updateTaskStatus(workflowId, taskId, newStatus);
+      queryClient.invalidateQueries({ queryKey: ['board-tasks', workflowId] });
+      queryClient.invalidateQueries({ queryKey: ['board-stats', workflowId] });
+    }
+  };
+
   if (tasks && tasks.length === 0 && !statusFilter && !assigneeFilter && !search) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -152,38 +172,66 @@ export default function WorkflowBoardTab({ workflowId }: { workflowId: string })
       </div>
 
       {/* Board columns */}
-      <div className="flex gap-4 overflow-x-auto pb-2">
-        {COLUMNS.map((col) => {
-          const columnTasks = tasksByStatus[col.key] ?? [];
-          return (
-            <div key={col.key} className="min-w-[250px] flex-1 sm:min-w-[280px]">
-              <div className="mb-2 flex items-center gap-2">
-                <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{col.label}</h2>
-                <Badge variant="default">{columnTasks.length}</Badge>
-              </div>
-              <div className={`min-h-[200px] rounded-lg p-2 ${col.color} dark:bg-gray-800/50`}>
-                {columnTasks.length === 0 ? (
-                  <p className="py-8 text-center text-xs text-gray-400 dark:text-gray-500">No tasks</p>
-                ) : (
-                  <div className="space-y-2">
-                    {columnTasks.map((task) => (
-                      <Link key={task.id} href={`/workflows/${workflowId}/tasks/${task.id}`}>
-                        <div className="cursor-pointer rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600">
-                          <p className="text-sm font-medium text-gray-900 line-clamp-2 dark:text-gray-100">{task.title}</p>
-                          <div className="mt-2 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                            <Badge variant="default">{task.assignee}</Badge>
-                            <span>{formatAge(task.createdAt)}</span>
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd} onDragStart={(e) => { const t = tasks?.find((tk) => tk.id === String(e.active.id)); setActiveTask(t ?? null); }}>
+        <div className="flex gap-4 overflow-x-auto pb-2">
+          {COLUMNS.map((col) => {
+            const columnTasks = tasksByStatus[col.key] ?? [];
+            return (
+              <div key={col.key} className="min-w-[250px] flex-1 sm:min-w-[280px]">
+                <div className="mb-2 flex items-center gap-2">
+                  <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{col.label}</h2>
+                  <Badge variant="default">{columnTasks.length}</Badge>
+                </div>
+                <SortableContext items={columnTasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+                  <div id={col.key} className={`min-h-[200px] rounded-lg p-2 ${col.color} dark:bg-gray-800/50`}>
+                    {columnTasks.length === 0 ? (
+                      <p className="py-8 text-center text-xs text-gray-400 dark:text-gray-500">No tasks</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {columnTasks.map((task) => (
+                          <SortableTaskCard key={task.id} task={task} workflowId={workflowId} />
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
+                </SortableContext>
+              </div>
+            );
+          })}
+        </div>
+        <DragOverlay>
+          {activeTask && (
+            <div className="rounded-xl border border-indigo-300 bg-white p-3 shadow-lg dark:bg-gray-800">
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{activeTask.title}</p>
+            </div>
+          )}
+        </DragOverlay>
+      </DndContext>
+    </div>
+  );
+}
+
+function SortableTaskCard({ task, workflowId }: { task: BoardTask; workflowId: string }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <Link href={`/workflows/${workflowId}/tasks/${task.id}`}>
+        <div className="cursor-pointer rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600">
+          <div className="flex items-start gap-2">
+            <button type="button" {...listeners} className="mt-0.5 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing">
+              <GripVertical className="h-3.5 w-3.5" />
+            </button>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 line-clamp-2 dark:text-gray-100">{task.title}</p>
+              <div className="mt-2 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                <Badge variant="default">{task.assignee}</Badge>
+                <span>{formatAge(task.createdAt)}</span>
               </div>
             </div>
-          );
-        })}
-      </div>
+          </div>
+        </div>
+      </Link>
     </div>
   );
 }

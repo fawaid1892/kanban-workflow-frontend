@@ -8,6 +8,7 @@ import { ArrowLeft } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { fetchTaskDetail } from '@/lib/board-api';
+import { addTaskComment } from '@/lib/workflow-api';
 import type { TaskDetail } from '@/types/board';
 
 function formatTimestamp(ts: number): string {
@@ -171,6 +172,45 @@ export default function TaskDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      <CommentForm workflowId={workflowId} taskId={taskId} onAdded={() => {}} />
     </div>
+  );
+}
+
+function CommentForm({ workflowId, taskId, onAdded }: { workflowId: string; taskId: string; onAdded: () => void }) {
+  const [body, setBody] = React.useState('');
+  const [submitting, setSubmitting] = React.useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!body.trim()) return;
+    setSubmitting(true);
+    await addTaskComment(workflowId, taskId, body.trim());
+    setBody('');
+    setSubmitting(false);
+    onAdded();
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="mt-6 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+      <h3 className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">Add Comment</h3>
+      <textarea
+        className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/20 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
+        rows={3}
+        placeholder="Write a comment..."
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+      />
+      <div className="mt-2 flex justify-end">
+        <button
+          type="submit"
+          disabled={submitting || !body.trim()}
+          className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-600 disabled:opacity-50"
+        >
+          {submitting ? 'Sending...' : 'Comment'}
+        </button>
+      </div>
+    </form>
   );
 }

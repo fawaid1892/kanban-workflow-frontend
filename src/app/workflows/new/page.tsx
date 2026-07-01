@@ -18,13 +18,13 @@ import {
   MarkerType,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { useMutation } from '@tanstack/react-query';
-import { ArrowLeft, Save, Plus, Workflow } from 'lucide-react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { ArrowLeft, Save, Plus, Workflow, FileText } from 'lucide-react';
 import { Toast } from '@/components/ui/toast';
 import StageNode, { type StageNodeData } from '@/components/workflow/StageNode';
 import { NodeEditor } from '@/components/workflow/NodeEditor';
 import { RolePicker } from '@/components/workflow/RolePicker';
-import { createWorkflow, createStage, setStageDeps } from '@/lib/workflow-api';
+import { createWorkflow, createStage, setStageDeps, fetchTemplates, type WorkflowTemplate } from '@/lib/workflow-api';
 
 const nodeTypes: NodeTypes = { stage: StageNode };
 const initialNodes: Node[] = [];
@@ -39,6 +39,41 @@ export default function NewWorkflowPage() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [rolePickerOpen, setRolePickerOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const { data: templates } = useQuery<WorkflowTemplate[]>({
+    queryKey: ['templates'],
+    queryFn: fetchTemplates,
+  });
+
+  const applyTemplate = (template: WorkflowTemplate) => {
+    setWorkflowName(template.name);
+    const newNodes: Node[] = template.stages.map((stage, i) => ({
+      id: String(nextNodeId--),
+      type: 'stage',
+      position: { x: 100 + (i % 3) * 320, y: 50 + Math.floor(i / 3) * 220 },
+      data: {
+        roleLabel: stage.roleLabel,
+        titleTemplate: stage.titleTemplate,
+        assigneeSlug: stage.roleSlug,
+        initialStatus: stage.initialStatus,
+        maxRuntime: null,
+        maxRetries: 2,
+        skills: [],
+        goalMode: false,
+        sortOrder: stage.sortOrder,
+      },
+    }));
+    const newEdges: Edge[] = template.dependencies.map((dep) => ({
+      id: `e-${dep.parentIndex}-${dep.childIndex}`,
+      source: newNodes[dep.parentIndex]?.id ?? '',
+      target: newNodes[dep.childIndex]?.id ?? '',
+      animated: true,
+      markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
+      style: { stroke: '#818cf8', strokeWidth: 2 },
+    })).filter((e) => e.source && e.target);
+    setNodes(newNodes);
+    setEdges(newEdges);
+  };
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -142,6 +177,26 @@ export default function NewWorkflowPage() {
           </button>
         </div>
       </div>
+
+      {/* Template selector */}
+      {templates && templates.length > 0 && nodes.length === 0 && (
+        <div className="border-b bg-indigo-50/50 px-5 py-3 dark:bg-indigo-900/10">
+          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+            <FileText className="h-3.5 w-3.5" />
+            <span className="font-medium">Quick start:</span>
+            {templates.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => applyTemplate(t)}
+                className="rounded-lg border border-indigo-200 bg-white px-2.5 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-100 dark:border-indigo-800 dark:bg-gray-800 dark:text-indigo-400"
+              >
+                {t.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="relative flex-1">
         <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} onNodeClick={(e, n) => setSelectedNodeId(n.id)} onPaneClick={() => setSelectedNodeId(null)} nodeTypes={nodeTypes} fitView snapToGrid snapGrid={[16, 16]} proOptions={{ hideAttribution: true }} className="!bg-gray-50">

@@ -4,9 +4,9 @@ import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Pencil, Trash2, LayoutGrid, Settings, Play, History, Copy } from 'lucide-react';
+import { ArrowLeft, Pencil, Trash2, LayoutGrid, Settings, Play, History, Copy, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { fetchWorkflow, deleteWorkflow, duplicateWorkflow } from '@/lib/workflow-api';
+import { fetchWorkflow, deleteWorkflow, duplicateWorkflow, exportWorkflow } from '@/lib/workflow-api';
 import type { Workflow } from '@/types/workflow';
 import WorkflowBoardTab from './board-tab';
 import WorkflowEditTab from './edit-tab';
@@ -43,6 +43,17 @@ export default function WorkflowDetailPage() {
       router.push(`/workflows/${newWf.id}`);
     },
   });
+
+  const handleExport = async () => {
+    const data = await exportWorkflow(id);
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${workflow?.name ?? 'workflow'}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   if (isLoading) {
     return (
@@ -95,6 +106,13 @@ export default function WorkflowDetailPage() {
               disabled={duplicateMutation.isPending}
             >
               <Copy className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+            >
+              <Download className="h-4 w-4" />
             </Button>
             {activeTab === 'edit' && (
               <Button

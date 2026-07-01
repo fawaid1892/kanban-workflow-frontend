@@ -105,3 +105,50 @@ export async function duplicateWorkflow(id: string): Promise<Workflow> {
   const response = await api.post<Workflow>(`/workflows/${id}/duplicate`);
   return response.data;
 }
+
+// ── Export / Import ──
+
+export interface WorkflowExport {
+  name: string;
+  description?: string;
+  stages: { titleTemplate: string; roleSlug: string; roleLabel: string; initialStatus: string; maxRuntime?: number; maxRetries?: number; skills?: string[]; goalMode?: boolean; sortOrder?: number }[];
+  dependencies?: { parentIndex: number; childIndex: number }[];
+  settings?: { baseUrl: string; chatSchema: string };
+}
+
+export async function exportWorkflow(id: string): Promise<WorkflowExport> {
+  const response = await api.get<WorkflowExport>(`/workflows/${id}/export`);
+  return response.data;
+}
+
+export async function importWorkflow(data: WorkflowExport): Promise<Workflow> {
+  const response = await api.post<Workflow>('/workflows/import', data);
+  return response.data;
+}
+
+// ── Templates ──
+
+export interface WorkflowTemplate {
+  id: string;
+  name: string;
+  description: string;
+  stages: { titleTemplate: string; roleLabel: string; roleSlug: string; initialStatus: string; sortOrder: number }[];
+  dependencies: { parentIndex: number; childIndex: number }[];
+}
+
+export async function fetchTemplates(): Promise<WorkflowTemplate[]> {
+  const response = await api.get<WorkflowTemplate[]>('/workflows/templates');
+  return response.data;
+}
+
+// ── Board: Task Status + Comments ──
+
+export async function updateTaskStatus(workflowId: string, taskId: string, status: string): Promise<{ ok: boolean }> {
+  const response = await api.put<{ ok: boolean }>(`/workflows/${workflowId}/board/tasks/${taskId}/status`, { status });
+  return response.data;
+}
+
+export async function addTaskComment(workflowId: string, taskId: string, body: string, author?: string): Promise<{ ok: boolean }> {
+  const response = await api.post<{ ok: boolean }>(`/workflows/${workflowId}/board/tasks/${taskId}/comments`, { body, author: author ?? 'user' });
+  return response.data;
+}

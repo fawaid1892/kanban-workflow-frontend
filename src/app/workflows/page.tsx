@@ -1,14 +1,15 @@
 'use client';
 
-import React from 'react';
+import React, { useRef } from 'react';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Workflow, Play, Trash2, Clock, Copy } from 'lucide-react';
-import { fetchWorkflows, deleteWorkflow, duplicateWorkflow } from '@/lib/workflow-api';
+import { Plus, Workflow, Play, Trash2, Clock, Copy, Upload } from 'lucide-react';
+import { fetchWorkflows, deleteWorkflow, duplicateWorkflow, importWorkflow, type WorkflowExport } from '@/lib/workflow-api';
 import type { Workflow as WorkflowType } from '@/types/workflow';
 
 export default function WorkflowsPage() {
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { data: workflows, isLoading } = useQuery<WorkflowType[]>({
     queryKey: ['workflows'],
     queryFn: fetchWorkflows,
@@ -22,6 +23,16 @@ export default function WorkflowsPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['workflows'] }),
   });
 
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    const data: WorkflowExport = JSON.parse(text);
+    await importWorkflow(data);
+    queryClient.invalidateQueries({ queryKey: ['workflows'] });
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 dark:bg-gray-900 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-5xl">
@@ -30,9 +41,25 @@ export default function WorkflowsPage() {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Workflows</h1>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Each workflow is an isolated Kanban project</p>
           </div>
-          <Link href="/workflows/new" className="flex items-center gap-1.5 rounded-xl bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-600">
-            <Plus className="h-4 w-4" /> <span className="hidden sm:inline">New Workflow</span>
-          </Link>
+          <div className="flex items-center gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              className="hidden"
+              onChange={handleImport}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+            >
+              <Upload className="h-4 w-4" /> <span className="hidden sm:inline">Import</span>
+            </button>
+            <Link href="/workflows/new" className="flex items-center gap-1.5 rounded-xl bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-600">
+              <Plus className="h-4 w-4" /> <span className="hidden sm:inline">New Workflow</span>
+            </Link>
+          </div>
         </div>
 
         {isLoading && (
