@@ -270,3 +270,64 @@ export async function searchWorkflows(query: string): Promise<Workflow[]> {
   const response = await api.get<Workflow[]>(`/workflows/search?q=${encodeURIComponent(query)}`);
   return response.data;
 }
+
+// ── Tags ──
+
+export async function fetchTags(workflowId: string): Promise<{ id: string; tag: string }[]> {
+  const response = await api.get<{ id: string; tag: string }[]>(`/workflows/${workflowId}/tags`);
+  return response.data;
+}
+
+export async function addTag(workflowId: string, tag: string): Promise<{ tag: string }> {
+  const response = await api.post<{ tag: string }>(`/workflows/${workflowId}/tags`, { tag });
+  return response.data;
+}
+
+export async function removeTag(workflowId: string, tag: string): Promise<void> {
+  await api.delete(`/workflows/${workflowId}/tags/${encodeURIComponent(tag)}`);
+}
+
+export async function fetchAllTags(): Promise<string[]> {
+  const response = await api.get<string[]>('/workflows/tags');
+  return response.data;
+}
+
+// ── Favorites + Archive ──
+
+export async function toggleFavorite(workflowId: string): Promise<{ isFavorite: boolean }> {
+  const response = await api.put<{ isFavorite: boolean }>(`/workflows/${workflowId}/favorite`);
+  return response.data;
+}
+
+export async function toggleArchive(workflowId: string): Promise<{ isArchived: boolean }> {
+  const response = await api.put<{ isArchived: boolean }>(`/workflows/${workflowId}/archive`);
+  return response.data;
+}
+
+// ── Gantt ──
+
+export interface GanttData {
+  stages: { id: number; label: string; titleTemplate: string; startDay: number; endDay: number; assignee: string }[];
+  dependencies: { from: number; to: number }[];
+  totalDays: number;
+}
+
+export async function fetchGantt(workflowId: string): Promise<GanttData> {
+  const response = await api.get<GanttData>(`/workflows/${workflowId}/gantt`);
+  return response.data;
+}
+
+// ── Time Tracking ──
+
+export interface TimeLog {
+  id: string;
+  taskId: string;
+  startedAt: string;
+  completedAt: string | null;
+  durationSeconds: number | null;
+}
+
+export async function fetchTimeLogs(workflowId: string): Promise<TimeLog[]> {
+  const response = await api.get<TimeLog[]>(`/workflows/${workflowId}/time-logs`);
+  return response.data;
+}

@@ -1,18 +1,20 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Workflow, Play, Trash2, Clock, Copy, Upload } from 'lucide-react';
-import { fetchWorkflows, deleteWorkflow, duplicateWorkflow, importWorkflow, type WorkflowExport } from '@/lib/workflow-api';
+import { Plus, Workflow, Play, Trash2, Clock, Copy, Upload, Star, Archive } from 'lucide-react';
+import { fetchWorkflows, deleteWorkflow, duplicateWorkflow, importWorkflow, toggleFavorite, toggleArchive, type WorkflowExport } from '@/lib/workflow-api';
 import type { Workflow as WorkflowType } from '@/types/workflow';
 
 export default function WorkflowsPage() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showArchived, setShowArchived] = useState(false);
+
   const { data: workflows, isLoading } = useQuery<WorkflowType[]>({
-    queryKey: ['workflows'],
-    queryFn: fetchWorkflows,
+    queryKey: ['workflows', showArchived],
+    queryFn: () => fetchWorkflows(),
   });
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteWorkflow(id),
@@ -20,6 +22,14 @@ export default function WorkflowsPage() {
   });
   const duplicateMutation = useMutation({
     mutationFn: (id: string) => duplicateWorkflow(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['workflows'] }),
+  });
+  const favMutation = useMutation({
+    mutationFn: (id: string) => toggleFavorite(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['workflows'] }),
+  });
+  const archiveMutation = useMutation({
+    mutationFn: (id: string) => toggleArchive(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['workflows'] }),
   });
 
@@ -42,6 +52,18 @@ export default function WorkflowsPage() {
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Each workflow is an isolated Kanban project</p>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowArchived(!showArchived)}
+              className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-medium ${
+                showArchived
+                  ? 'border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-900/20 dark:text-orange-400'
+                  : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400'
+              }`}
+            >
+              <Archive className="h-3.5 w-3.5" />
+              {showArchived ? 'Hide Archived' : 'Show Archived'}
+            </button>
             <input
               ref={fileInputRef}
               type="file"
@@ -97,6 +119,14 @@ export default function WorkflowsPage() {
                       {wf.description && <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 line-clamp-1">{wf.description}</p>}
                     </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); favMutation.mutate(String(wf.id)); }}
+                    className="text-gray-400 hover:text-yellow-500"
+                    title="Favorite"
+                  >
+                    <Star className={`h-4 w-4 ${(wf as WorkflowType & { isFavorite?: boolean }).isFavorite ? 'fill-yellow-400 text-yellow-400' : ''}`} />
+                  </button>
                 </div>
                 <div className="mt-4 flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
                   <Clock className="h-3 w-3" />
@@ -114,7 +144,15 @@ export default function WorkflowsPage() {
                   >
                     <Copy className="h-3.5 w-3.5" />
                   </button>
-                  <button type="button" onClick={(e) => { e.preventDefault(); if (confirm('Delete?')) deleteMutation.mutate(String(wf.id)); }} className="ml-auto flex items-center gap-1 rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/30">
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); archiveMutation.mutate(String(wf.id)); }}
+                    className="flex items-center gap-1 rounded-lg p-1.5 text-gray-400 hover:bg-orange-50 hover:text-orange-500 dark:hover:bg-orange-900/30"
+                    title="Archive"
+                  >
+                    <Archive className="h-3.5 w-3.5" />
+                  </button>
+                  <button type="button" onClick={(e) => { e.preventDefault(); if (confirm('Delete?')) deleteMutation.mutate(String(wf.id)); }} className="flex items-center gap-1 rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/30">
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
