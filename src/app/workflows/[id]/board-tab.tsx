@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { RefreshCw, Search } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { fetchBoardTasks, fetchBoardStats } from '@/lib/board-api';
+import { getSocket, joinWorkflowRoom, leaveWorkflowRoom } from '@/lib/socket';
 import type { BoardTask, BoardStats } from '@/types/board';
 
 const COLUMNS = [
@@ -55,6 +56,24 @@ export default function WorkflowBoardTab({ workflowId }: { workflowId: string })
     queryFn: () => fetchBoardStats(workflowId),
     refetchInterval: 10000,
   });
+
+  // WebSocket for real-time updates
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    const socket = getSocket();
+    joinWorkflowRoom(workflowId);
+
+    const handleBoardUpdate = () => {
+      queryClient.invalidateQueries({ queryKey: ['board-tasks', workflowId] });
+      queryClient.invalidateQueries({ queryKey: ['board-stats', workflowId] });
+    };
+
+    socket.on('board:update', handleBoardUpdate);
+    return () => {
+      socket.off('board:update', handleBoardUpdate);
+      leaveWorkflowRoom(workflowId);
+    };
+  }, [workflowId, queryClient]);
 
   const tasksByStatus = React.useMemo(() => {
     if (!tasks) return {};
@@ -133,25 +152,25 @@ export default function WorkflowBoardTab({ workflowId }: { workflowId: string })
       </div>
 
       {/* Board columns */}
-      <div className="flex gap-4 overflow-x-auto">
+      <div className="flex gap-4 overflow-x-auto pb-2">
         {COLUMNS.map((col) => {
           const columnTasks = tasksByStatus[col.key] ?? [];
           return (
-            <div key={col.key} className="min-w-[250px] flex-1">
+            <div key={col.key} className="min-w-[250px] flex-1 sm:min-w-[280px]">
               <div className="mb-2 flex items-center gap-2">
-                <h2 className="text-sm font-semibold text-gray-700">{col.label}</h2>
+                <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{col.label}</h2>
                 <Badge variant="default">{columnTasks.length}</Badge>
               </div>
-              <div className={`min-h-[200px] rounded-lg p-2 ${col.color}`}>
+              <div className={`min-h-[200px] rounded-lg p-2 ${col.color} dark:bg-gray-800/50`}>
                 {columnTasks.length === 0 ? (
-                  <p className="py-8 text-center text-xs text-gray-400">No tasks</p>
+                  <p className="py-8 text-center text-xs text-gray-400 dark:text-gray-500">No tasks</p>
                 ) : (
                   <div className="space-y-2">
                     {columnTasks.map((task) => (
                       <Link key={task.id} href={`/workflows/${workflowId}/tasks/${task.id}`}>
-                        <div className="cursor-pointer rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-all hover:shadow-md">
-                          <p className="text-sm font-medium text-gray-900 line-clamp-2">{task.title}</p>
-                          <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                        <div className="cursor-pointer rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600">
+                          <p className="text-sm font-medium text-gray-900 line-clamp-2 dark:text-gray-100">{task.title}</p>
+                          <div className="mt-2 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                             <Badge variant="default">{task.assignee}</Badge>
                             <span>{formatAge(task.createdAt)}</span>
                           </div>

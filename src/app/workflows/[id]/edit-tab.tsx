@@ -20,6 +20,7 @@ import '@xyflow/react/dist/style.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Save, Plus, Workflow } from 'lucide-react';
 import { Toast } from '@/components/ui/toast';
+import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import StageNode, { type StageNodeData } from '@/components/workflow/StageNode';
 import { NodeEditor } from '@/components/workflow/NodeEditor';
 import { RolePicker } from '@/components/workflow/RolePicker';
@@ -120,6 +121,10 @@ export default function WorkflowEditTab({ workflowId }: { workflowId: string }) 
     onError: (err: Error) => {
       setToast({ message: err.message, type: 'error' });
     },
+  });
+
+  useKeyboardShortcuts({
+    onSave: () => { if (!saveMutation.isPending) saveMutation.mutate(); },
   });
 
   const addNodeWithRole = useCallback((role: { label: string; slug: string; skills: string[] }) => {

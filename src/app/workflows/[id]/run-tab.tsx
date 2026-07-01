@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Play, CheckCircle, Loader2 } from 'lucide-react';
 import { Toast } from '@/components/ui/toast';
+import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { fetchWorkflowGraph, runWorkflow } from '@/lib/workflow-api';
 import type { WorkflowGraph } from '@/types/workflow';
 
@@ -47,6 +48,10 @@ export default function WorkflowRunTab({ workflowId }: { workflowId: string }) {
     onError: (err: Error) => {
       setToast({ message: err.message, type: 'error' });
     },
+  });
+
+  useKeyboardShortcuts({
+    onRun: () => { if (!runMutation.isPending) runMutation.mutate(); },
   });
 
   if (graphLoading) {

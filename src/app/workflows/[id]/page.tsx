@@ -4,9 +4,9 @@ import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Pencil, Trash2, LayoutGrid, Settings, Play, History } from 'lucide-react';
+import { ArrowLeft, Pencil, Trash2, LayoutGrid, Settings, Play, History, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { fetchWorkflow, deleteWorkflow } from '@/lib/workflow-api';
+import { fetchWorkflow, deleteWorkflow, duplicateWorkflow } from '@/lib/workflow-api';
 import type { Workflow } from '@/types/workflow';
 import WorkflowBoardTab from './board-tab';
 import WorkflowEditTab from './edit-tab';
@@ -33,6 +33,14 @@ export default function WorkflowDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workflows'] });
       router.push('/workflows');
+    },
+  });
+
+  const duplicateMutation = useMutation({
+    mutationFn: () => duplicateWorkflow(id),
+    onSuccess: (newWf) => {
+      queryClient.invalidateQueries({ queryKey: ['workflows'] });
+      router.push(`/workflows/${newWf.id}`);
     },
   });
 
@@ -80,6 +88,14 @@ export default function WorkflowDetailPage() {
             )}
           </div>
           <div className="ml-auto flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => duplicateMutation.mutate()}
+              disabled={duplicateMutation.isPending}
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
             {activeTab === 'edit' && (
               <Button
                 variant="destructive"

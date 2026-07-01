@@ -98,3 +98,10 @@ export async function updateWorkflowSettings(workflowId: string, payload: {
   const response = await api.put<WorkflowSettings>(`/workflows/${workflowId}/settings`, payload);
   return response.data;
 }
+
+// ── Duplicate ──
+
+export async function duplicateWorkflow(id: string): Promise<Workflow> {
+  const response = await api.post<Workflow>(`/workflows/${id}/duplicate`);
+  return response.data;
+}
