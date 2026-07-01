@@ -5,12 +5,14 @@ import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Workflow, Play, Trash2, Clock, Copy, Upload, Star, Archive, Download } from 'lucide-react';
 import { fetchWorkflows, deleteWorkflow, duplicateWorkflow, importWorkflow, toggleFavorite, toggleArchive, exportAllWorkflows, type WorkflowExport } from '@/lib/workflow-api';
+import { Pagination } from '@/components/ui/pagination';
 import type { Workflow as WorkflowType } from '@/types/workflow';
 
 export default function WorkflowsPage() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [page, setPage] = useState(1);
 
   const { data: workflows, isLoading } = useQuery<WorkflowType[]>({
     queryKey: ['workflows', showArchived],
@@ -178,6 +180,9 @@ export default function WorkflowsPage() {
               </Link>
             ))}
           </div>
+        )}
+        {workflows && workflows.length > 20 && (
+          <Pagination page={page} totalPages={Math.ceil(workflows.length / 20)} onPageChange={setPage} />
         )}
       </div>
     </div>
