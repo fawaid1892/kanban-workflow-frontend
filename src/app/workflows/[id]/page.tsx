@@ -3,16 +3,27 @@
 import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Pencil, Trash2, LayoutGrid, Settings, Play, History, Copy, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { fetchWorkflow, deleteWorkflow, duplicateWorkflow, exportWorkflow } from '@/lib/workflow-api';
 import type { Workflow } from '@/types/workflow';
-import WorkflowBoardTab from './board-tab';
-import WorkflowEditTab from './edit-tab';
-import WorkflowSettingsTab from './settings-tab';
-import WorkflowRunTab from './run-tab';
-import WorkflowHistoryTab from './history-tab';
+
+const WorkflowBoardTab = dynamic(() => import('./board-tab'), { loading: () => <TabSkeleton /> });
+const WorkflowEditTab = dynamic(() => import('./edit-tab'), { loading: () => <TabSkeleton /> });
+const WorkflowSettingsTab = dynamic(() => import('./settings-tab'), { loading: () => <TabSkeleton /> });
+const WorkflowRunTab = dynamic(() => import('./run-tab'), { loading: () => <TabSkeleton /> });
+const WorkflowHistoryTab = dynamic(() => import('./history-tab'), { loading: () => <TabSkeleton /> });
+
+function TabSkeleton() {
+  return (
+    <div className="p-6 space-y-4">
+      <div className="h-8 w-48 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+      <div className="h-64 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" />
+    </div>
+  );
+}
 
 export default function WorkflowDetailPage() {
   const params = useParams();
