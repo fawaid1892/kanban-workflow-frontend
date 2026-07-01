@@ -17,16 +17,17 @@ interface ValidationErrors {
   apiKey?: string;
 }
 
-function validate(baseUrl: string, apiKey: string): ValidationErrors {
+function validate(baseUrl: string, apiKey: string, hasExistingKey: boolean): ValidationErrors {
   const errors: ValidationErrors = {};
   if (!baseUrl.trim()) {
     errors.baseUrl = 'Base URL is required';
   } else if (!/^https?:\/\/.+/.test(baseUrl.trim())) {
     errors.baseUrl = 'Must start with http:// or https://';
   }
-  if (!apiKey.trim()) {
+  // apiKey only required if there's no existing key
+  if (!hasExistingKey && !apiKey.trim()) {
     errors.apiKey = 'API Key is required';
-  } else if (apiKey.trim().length < 4) {
+  } else if (apiKey.trim() && apiKey.trim().length < 4) {
     errors.apiKey = 'API Key must be at least 4 characters';
   }
   return errors;
@@ -48,20 +49,27 @@ export default function WorkflowSettingsTab({ workflowId }: { workflowId: string
   const [apiKey, setApiKey] = useState('');
   const [chatSchema, setChatSchema] = useState('chat-completions');
 
+  const hasExistingKey = !!settings?.apiKeyMasked;
+
   useEffect(() => {
     if (settings) {
-      setBaseUrl(settings.baseUrl);
-      setChatSchema(settings.chatSchema);
+      setBaseUrl(settings.baseUrl || '');
+      setChatSchema(settings.chatSchema || 'chat-completions');
     }
   }, [settings]);
 
-  const isValid = Object.keys(validate(baseUrl, apiKey)).length === 0;
+  const isValid = Object.keys(validate(baseUrl, apiKey, hasExistingKey)).length === 0;
 
   const saveMutation = useMutation({
-    mutationFn: () => updateWorkflowSettings(workflowId, { baseUrl: baseUrl.trim(), apiKey: apiKey.trim(), chatSchema }),
+    mutationFn: () => updateWorkflowSettings(workflowId, {
+      baseUrl: baseUrl.trim(),
+      apiKey: apiKey.trim() || 'KEEP_EXISTING',
+      chatSchema,
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workflow-settings', workflowId] });
       setToast({ message: 'Settings saved!', type: 'success' });
+      setApiKey('');
     },
     onError: (err: Error) => {
       setToast({ message: err.message, type: 'error' });
@@ -69,7 +77,7 @@ export default function WorkflowSettingsTab({ workflowId }: { workflowId: string
   });
 
   const handleSave = () => {
-    const v = validate(baseUrl, apiKey);
+    const v = validate(baseUrl, apiKey, hasExistingKey);
     setErrors(v);
     if (Object.keys(v).length === 0) {
       saveMutation.mutate();
@@ -88,19 +96,19 @@ export default function WorkflowSettingsTab({ workflowId }: { workflowId: string
 
   return (
     <div className="mx-auto max-w-xl p-6">
-      <h2 className="mb-1 text-base font-bold text-gray-900">Workflow Settings</h2>
-      <p className="mb-6 text-xs text-gray-500">Configure the LLM provider for this workflow</p>
+      <h2 className="mb-1 text-base font-bold text-gray-900 dark:text-gray-100">Workflow Settings</h2>
+      <p className="mb-6 text-xs text-gray-500 dark:text-gray-400">Configure the LLM provider for this workflow</p>
 
       {/* Base URL */}
       <div className="mb-4">
-        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Base URL</label>
+        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Base URL</label>
         <input
           type="text"
           className={`w-full rounded-xl border bg-gray-50 px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 ${
             errors.baseUrl
               ? 'border-red-300 focus:border-red-400 focus:ring-red-400/20'
               : 'border-gray-200 focus:border-indigo-400 focus:ring-indigo-400/20'
-          }`}
+          } dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200`}
           placeholder="https://api.openai.com/v1"
           value={baseUrl}
           onChange={(e) => onBaseUrlChange(e.target.value)}
@@ -115,7 +123,9 @@ export default function WorkflowSettingsTab({ workflowId }: { workflowId: string
 
       {/* API Key */}
       <div className="mb-4">
-        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">API Key</label>
+        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          API Key {hasExistingKey && <span className="text-gray-400">(leave empty to keep current)</span>}
+        </label>
         <div className="relative">
           <input
             type={showApiKey ? 'text' : 'password'}
@@ -123,16 +133,12 @@ export default function WorkflowSettingsTab({ workflowId }: { workflowId: string
               errors.apiKey
                 ? 'border-red-300 focus:border-red-400 focus:ring-red-400/20'
                 : 'border-gray-200 focus:border-indigo-400 focus:ring-indigo-400/20'
-            }`}
-            placeholder="sk-..."
+            } dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200`}
+            placeholder={hasExistingKey ? '••••••••' : 'sk-...'}
             value={apiKey}
             onChange={(e) => onApiKeyChange(e.target.value)}
           />
-          <button
-            type="button"
-            onClick={() => setShowApiKey(!showApiKey)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-          >
+          <button type="button" onClick={() => setShowApiKey(!showApiKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
             {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
@@ -149,7 +155,7 @@ export default function WorkflowSettingsTab({ workflowId }: { workflowId: string
 
       {/* Chat Schema */}
       <div className="mb-6">
-        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Chat Schema</label>
+        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Chat Schema</label>
         <div className="flex gap-2">
           {SCHEMAS.map((s) => (
             <button
@@ -158,8 +164,8 @@ export default function WorkflowSettingsTab({ workflowId }: { workflowId: string
               onClick={() => setChatSchema(s.value)}
               className={`flex-1 rounded-xl border px-3 py-2 text-xs font-medium transition-all ${
                 chatSchema === s.value
-                  ? 'border-indigo-400 bg-indigo-50 text-indigo-700'
-                  : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                  ? 'border-indigo-400 bg-indigo-50 text-indigo-700 dark:border-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400'
+                  : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400'
               }`}
             >
               {s.label}

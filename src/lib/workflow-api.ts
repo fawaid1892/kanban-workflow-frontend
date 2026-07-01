@@ -55,7 +55,7 @@ export async function deleteStage(workflowId: string, stageId: string): Promise<
 
 // ── Dependencies ──
 
-export async function setStageDeps(workflowId: string, stageId: string, parentIds: string[]): Promise<void> {
+export async function setStageDeps(workflowId: string, stageId: string, parentIds: number[]): Promise<void> {
   await api.put(`/workflows/${workflowId}/stages/${stageId}/deps`, { parentIds });
 }
 

@@ -80,7 +80,7 @@ export default function NewWorkflowPage() {
       if (!workflowName.trim()) throw new Error('Workflow name is required');
       const wf = await createWorkflow({ name: workflowName, description: "" });
 
-      const stageIdMap = new Map<string, string>();
+      const stageIdMap = new Map<string, number>();
       for (const node of nodes) {
         const d = node.data as unknown as StageNodeData;
         const stage = await createStage(wf.id, {
@@ -94,7 +94,7 @@ export default function NewWorkflowPage() {
           goalMode: d.goalMode,
           sortOrder: d.sortOrder,
         });
-        stageIdMap.set(node.id, String(stage.id));
+        stageIdMap.set(node.id, stage.id);
       }
 
       for (const edge of edges) {
@@ -104,8 +104,8 @@ export default function NewWorkflowPage() {
           const existingParents = edges
             .filter((e) => e.target === edge.target)
             .map((e) => stageIdMap.get(e.source))
-            .filter(Boolean) as string[];
-          await setStageDeps(wf.id, targetId, existingParents);
+            .filter(Boolean) as number[];
+          await setStageDeps(wf.id, String(targetId), existingParents);
         }
       }
 

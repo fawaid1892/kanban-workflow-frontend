@@ -48,20 +48,21 @@ export default function WorkflowEditTab({ workflowId }: { workflowId: string }) 
     queryKey: ['workflow-graph', workflowId],
     queryFn: async () => {
       const graph = await fetchWorkflowGraph(workflowId);
+      if (!graph || !graph.stages) return { workflow: {}, stages: [], dependencies: [] } as unknown as WorkflowGraph;
       const flowNodes: Node[] = graph.stages.map((stage, i) => ({
         id: String(stage.id),
         type: 'stage',
         position: { x: 100 + (i % 3) * 320, y: 50 + Math.floor(i / 3) * 220 },
         data: {
-          roleLabel: stage.roleLabel,
-          titleTemplate: stage.titleTemplate,
-          assigneeSlug: stage.roleSlug,
-          initialStatus: stage.initialStatus,
-          maxRuntime: stage.maxRuntime,
-          maxRetries: stage.maxRetries,
+          roleLabel: stage.roleLabel ?? 'Unknown',
+          titleTemplate: stage.titleTemplate ?? '',
+          assigneeSlug: stage.roleSlug ?? 'unknown',
+          initialStatus: stage.initialStatus ?? 'todo',
+          maxRuntime: stage.maxRuntime ?? null,
+          maxRetries: stage.maxRetries ?? 2,
           skills: stage.skills ?? [],
-          goalMode: stage.goalMode,
-          sortOrder: stage.sortOrder,
+          goalMode: stage.goalMode ?? false,
+          sortOrder: stage.sortOrder ?? i,
         },
       }));
       const flowEdges: Edge[] = [];
@@ -86,7 +87,7 @@ export default function WorkflowEditTab({ workflowId }: { workflowId: string }) 
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const stageIdMap = new Map<string, string>();
+      const stageIdMap = new Map<string, number>();
       for (const node of nodes) {
         const d = node.data as unknown as StageNodeData;
         const stage = await createStage(workflowId, {
@@ -100,7 +101,7 @@ export default function WorkflowEditTab({ workflowId }: { workflowId: string }) 
           goalMode: d.goalMode,
           sortOrder: d.sortOrder,
         });
-        stageIdMap.set(node.id, String(stage.id));
+        stageIdMap.set(node.id, stage.id);
       }
       for (const edge of edges) {
         const sourceId = stageIdMap.get(edge.source);
@@ -109,8 +110,8 @@ export default function WorkflowEditTab({ workflowId }: { workflowId: string }) 
           const existingParents = edges
             .filter((e) => e.target === edge.target)
             .map((e) => stageIdMap.get(e.source))
-            .filter(Boolean) as string[];
-          await setStageDeps(workflowId, targetId, existingParents);
+            .filter(Boolean) as number[];
+          await setStageDeps(workflowId, String(targetId), existingParents);
         }
       }
     },
