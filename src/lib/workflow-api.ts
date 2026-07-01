@@ -354,3 +354,73 @@ export async function exportAllWorkflows(): Promise<unknown[]> {
   const response = await api.get<unknown[]>('/workflows/export-all');
   return response.data;
 }
+
+// ── Dashboard ──
+
+export interface DashboardData {
+  totalWorkflows: number;
+  activeWorkflows: number;
+  totalRuns: number;
+  overallSuccessRate: number;
+  recentRuns: { workflowName: string; status: string; createdAt: string }[];
+  topWorkflows: { name: string; runCount: number }[];
+}
+
+export async function fetchDashboard(): Promise<DashboardData> {
+  const response = await api.get<DashboardData>('/dashboard');
+  return response.data;
+}
+
+// ── Notes ──
+
+export async function updateNotes(workflowId: string, notes: string): Promise<{ notes: string }> {
+  const response = await api.put<{ notes: string }>(`/workflows/${workflowId}/notes`, { notes });
+  return response.data;
+}
+
+// ── Sharing ──
+
+export interface WorkflowShare {
+  id: string;
+  userId: string;
+  permission: string;
+  createdAt: string;
+}
+
+export async function fetchShares(workflowId: string): Promise<WorkflowShare[]> {
+  const response = await api.get<WorkflowShare[]>(`/workflows/${workflowId}/shares`);
+  return response.data;
+}
+
+export async function addShare(workflowId: string, userId: string, permission: string): Promise<{ userId: string; permission: string }> {
+  const response = await api.post(`/workflows/${workflowId}/shares`, { userId, permission });
+  return response.data;
+}
+
+export async function removeShare(workflowId: string, shareId: string): Promise<void> {
+  await api.delete(`/workflows/${workflowId}/shares/${shareId}`);
+}
+
+// ── Recurring ──
+
+export interface RecurringTask {
+  id: string;
+  stageId: number;
+  interval: string;
+  nextRunAt: string;
+  isActive: boolean;
+}
+
+export async function fetchRecurring(workflowId: string): Promise<RecurringTask[]> {
+  const response = await api.get<RecurringTask[]>(`/workflows/${workflowId}/recurring`);
+  return response.data;
+}
+
+export async function createRecurring(workflowId: string, data: { stageId: number; interval: string }): Promise<RecurringTask> {
+  const response = await api.post<RecurringTask>(`/workflows/${workflowId}/recurring`, data);
+  return response.data;
+}
+
+export async function deleteRecurring(workflowId: string, recurringId: string): Promise<void> {
+  await api.delete(`/workflows/${workflowId}/recurring/${recurringId}`);
+}
